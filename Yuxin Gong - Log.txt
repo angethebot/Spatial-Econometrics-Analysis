@@ -1,0 +1,1026 @@
+
+> # sink file actually saves itself in the working directory, but just to be safe, I specified the file 
+> # After opening the sink file, all output w .... [TRUNCATED] 
+
+> library(tidyverse)
+
+> library(sf)
+
+> #library(raster)
+> library(readxl)
+
+> library(skimr)
+
+> library(tseries)
+
+> library(plm)
+
+> library(sf)
+
+> library(spdep)
+
+> library(RColorBrewer)
+
+> library(SDPDmod)
+
+> library(splm)
+
+> library(car)
+
+> ######## 1. Clean the data #########
+> # Load the panel data and the shapefile#
+> province = read_xlsx("provincial.xlsx")
+
+> province = province %>% filter(time > as.Date("2008-03-01"))
+
+> anyNA(province)
+[1] FALSE
+
+> province$province_factor = as.factor(province$province)
+
+> province$time = as.Date(province$time)
+
+> head(province)
+# A tibble: 6 × 20
+  province time       housing_land_index housing_index_log housing_index_growth immigrant_ratio_employmnt imm_ratio_growth
+  <chr>    <date>                  <dbl>             <dbl>                <dbl>                     <dbl>            <dbl>
+1 Alberta  2008-04-01               103.              4.63             -0.00680                      16.7            0.546
+2 Alberta  2008-05-01               101.              4.62             -0.0137                       17.0            1.45 
+3 Alberta  2008-06-01               101.              4.61             -0.00396                      17.2            1.22 
+4 Alberta  2008-07-01               101.              4.61             -0.00199                      17.1           -0.396
+5 Alberta  2008-08-01               100.              4.61             -0.00498                      16.9           -0.947
+6 Alberta  2008-09-01               100.              4.61              0.00299                      16.7           -1.32 
+# ℹ 13 more variables: population_density <dbl>, pop_density_growth <dbl>, unemployment <dbl>, unemployment_growth <dbl>,
+#   wage <dbl>, wage_growth <dbl>, CPI <dbl>, CPI_log <dbl>, lat <dbl>, lon <dbl>, COVID <dbl>, after_tax <dbl>,
+#   province_factor <fct>
+
+> skim_without_charts(province)
+── Data Summary ────────────────────────
+                           Values  
+Name                       province
+Number of rows             1890    
+Number of columns          20      
+_______________________            
+Column type frequency:             
+  character                1       
+  Date                     1       
+  factor                   1       
+  numeric                  17      
+________________________           
+Group variables            None    
+
+── Variable type: character ──────────────────────────────────────────────────────────────────────────────────────────────────
+  skim_variable n_missing complete_rate min max empty n_unique whitespace
+1 province              0             1   6  25     0       10          0
+
+── Variable type: Date ───────────────────────────────────────────────────────────────────────────────────────────────────────
+  skim_variable n_missing complete_rate min        max        median     n_unique
+1 time                  0             1 2008-04-01 2023-12-01 2016-02-01      189
+
+── Variable type: factor ─────────────────────────────────────────────────────────────────────────────────────────────────────
+  skim_variable   n_missing complete_rate ordered n_unique top_counts                            
+1 province_factor         0             1 FALSE         10 Alb: 189, Bri: 189, Man: 189, New: 189
+
+── Variable type: numeric ────────────────────────────────────────────────────────────────────────────────────────────────────
+   skim_variable             n_missing complete_rate       mean        sd        p0       p25       p50        p75      p100
+ 1 housing_land_index                0             1  102.       11.7       74.6      96.1      99.5     104.       144.    
+ 2 housing_index_log                 0             1    4.61      0.109      4.31      4.57      4.60      4.65       4.97  
+ 3 housing_index_growth              0             1    0.00171   0.00550   -0.0279    0         0         0.00229    0.0541
+ 4 immigrant_ratio_employmnt         0             1   14.9       9.86       1.16      5.40     13.4      23.7       33.8   
+ 5 imm_ratio_growth                  0             1    0.352     3.12     -18.4      -0.942     0.247     1.51      23.2   
+ 6 population_density                0             1    7.81      6.53       1.19      1.83      5.21     12.7       25.8   
+ 7 pop_density_growth                0             1    0.101     0.0763    -0.0840    0.0482    0.0921    0.139      0.487 
+ 8 unemployment                      0             1    7.91      2.95       3         5.6       7.3       9.4       18.8   
+ 9 unemployment_growth               0             1   -0.101    13.6      -61.9      -7.41      0         7.70      73.1   
+10 wage                              0             1 3953.      721.      2439.     3369.     3869.     4459.      5829.    
+11 wage_growth                       0             1    0.212     1.59      -9.37     -0.559     0.343     1.11       8.68  
+12 CPI                               0             1  131.       12.7      111.      122.      129.      138        167.    
+13 CPI_log                           0             1    4.87      0.0942     4.71      4.80      4.86      4.93       5.12  
+14 lat                               0             1   51.4       3.94      45        46.5      53.1      55         56.4   
+15 lon                               0             1  -85.2      23.8     -128.     -106       -77.5     -63        -57.7   
+16 COVID                             0             1    0.254     0.435      0         0         0         1          1     
+17 after_tax                         0             1    0.381     0.486      0         0         0         1          1     
+
+> is.pbalanced(province)
+[1] TRUE
+
+> # It is a Balanced Panel Data
+> 
+> #Ignore the following
+> #province_sf = st_as_sf(province, coords = c("lon","lat"))
+> #plot(province_sf)
+> #summar .... [TRUNCATED] 
+Reading layer `lpr_000b21a_e' from data source 
+  `D:\Angie\Grad in UWaterloo\Term 2 W24\ECON623\Final Project\Code\shapefile_province\lpr_000b21a_e.shp' using driver `ESRI Shapefile'
+Simple feature collection with 13 features and 8 fields
+Geometry type: MULTIPOLYGON
+Dimension:     XY
+Bounding box:  xmin: 3689321 ymin: 659305 xmax: 9015751 ymax: 5242009
+Projected CRS: NAD83 / Statistics Canada Lambert
+
+> table(province_shp$PRNAME)
+
+                                            Alberta             British Columbia / Colombie-Britannique 
+                                                  1                                                   1 
+                                           Manitoba                   New Brunswick / Nouveau-Brunswick 
+                                                  1                                                   1 
+Newfoundland and Labrador / Terre-Neuve-et-Labrador   Northwest Territories / Territoires du Nord-Ouest 
+                                                  1                                                   1 
+                      Nova Scotia / Nouvelle-Écosse                                             Nunavut 
+                                                  1                                                   1 
+                                            Ontario        Prince Edward Island / Île-du-Prince-Édouard 
+                                                  1                                                   1 
+                                    Quebec / Québec                                        Saskatchewan 
+                                                  1                                                   1 
+                                              Yukon 
+                                                  1 
+
+> province_shp$PRNAME[province_shp$PRNAME == "Newfoundland and Labrador / Terre-Neuve-et-Labrador"] = "Newfoundland and Labrador"
+
+> province_shp$PRNAME[province_shp$PRNAME == "Prince Edward Island / Île-du-Prince-Édouard"] = "Prince Edward Island"
+
+> province_shp$PRNAME[province_shp$PRNAME == "Nova Scotia / Nouvelle-Écosse"] = "Nova Scotia"
+
+> province_shp$PRNAME[province_shp$PRNAME == "New Brunswick / Nouveau-Brunswick"] = "New Brunswick"
+
+> province_shp$PRNAME[province_shp$PRNAME == "Quebec / Québec"] = "Quebec"
+
+> province_shp$PRNAME[province_shp$PRNAME == "British Columbia / Colombie-Britannique"] = "British Columbia"
+
+> #Merge map data to the panel data to plot
+> province_panel_test2 = full_join(province_shp, province, by=c("PRNAME" = "province"))
+
+> province_panel_shp = province_panel_test2 %>% filter(PRNAME != "Yukon") %>% filter(PRNAME != "Northwest Territories / Territoires du Nord-Ouest") %> .... [TRUNCATED] 
+
+> class(province_panel_shp)
+[1] "sf"         "data.frame"
+
+> anyNA(province_panel_shp)
+[1] FALSE
+
+> summary(province_panel_shp)
+    PRUID              DGUID              PRNAME            PRENAME            PRFNAME            PREABBR         
+ Length:1890        Length:1890        Length:1890        Length:1890        Length:1890        Length:1890       
+ Class :character   Class :character   Class :character   Class :character   Class :character   Class :character  
+ Mode  :character   Mode  :character   Mode  :character   Mode  :character   Mode  :character   Mode  :character  
+                                                                                                                  
+                                                                                                                  
+                                                                                                                  
+                                                                                                                  
+   PRFABBR             LANDAREA            time            housing_land_index housing_index_log housing_index_growth
+ Length:1890        Min.   :   5681   Min.   :2008-04-01   Min.   : 74.6      Min.   :4.312     Min.   :-0.027909   
+ Class :character   1st Qu.:  71249   1st Qu.:2012-03-01   1st Qu.: 96.1      1st Qu.:4.565     1st Qu.: 0.000000   
+ Mode  :character   Median : 558685   Median :2016-02-01   Median : 99.5      Median :4.600     Median : 0.000000   
+                    Mean   : 535165   Mean   :2016-01-31   Mean   :101.6      Mean   :4.614     Mean   : 0.001708   
+                    3rd Qu.: 892412   3rd Qu.:2020-01-01   3rd Qu.:104.1      3rd Qu.:4.645     3rd Qu.: 0.002285   
+                    Max.   :1298600   Max.   :2023-12-01   Max.   :143.6      Max.   :4.967     Max.   : 0.054111   
+                                                                                                                    
+ immigrant_ratio_employmnt imm_ratio_growth   population_density pop_density_growth  unemployment    unemployment_growth
+ Min.   : 1.157            Min.   :-18.4380   Min.   : 1.192     Min.   :-0.08400   Min.   : 3.000   Min.   :-61.9039   
+ 1st Qu.: 5.405            1st Qu.: -0.9425   1st Qu.: 1.833     1st Qu.: 0.04819   1st Qu.: 5.600   1st Qu.: -7.4108   
+ Median :13.355            Median :  0.2469   Median : 5.207     Median : 0.09208   Median : 7.300   Median :  0.0000   
+ Mean   :14.850            Mean   :  0.3519   Mean   : 7.809     Mean   : 0.10085   Mean   : 7.907   Mean   : -0.1007   
+ 3rd Qu.:23.685            3rd Qu.:  1.5124   3rd Qu.:12.707     3rd Qu.: 0.13932   3rd Qu.: 9.400   3rd Qu.:  7.6961   
+ Max.   :33.771            Max.   : 23.1556   Max.   :25.822     Max.   : 0.48730   Max.   :18.800   Max.   : 73.1299   
+                                                                                                                        
+      wage       wage_growth           CPI           CPI_log           lat             lon              COVID      
+ Min.   :2439   Min.   :-9.3672   Min.   :111.1   Min.   :4.710   Min.   :45.00   Min.   :-127.65   Min.   :0.000  
+ 1st Qu.:3369   1st Qu.:-0.5594   1st Qu.:121.6   1st Qu.:4.801   1st Qu.:46.50   1st Qu.:-106.00   1st Qu.:0.000  
+ Median :3869   Median : 0.3431   Median :129.3   Median :4.862   Median :53.07   Median : -77.50   Median :0.000  
+ Mean   :3953   Mean   : 0.2122   Mean   :131.2   Mean   :4.873   Mean   :51.40   Mean   : -85.22   Mean   :0.254  
+ 3rd Qu.:4459   3rd Qu.: 1.1112   3rd Qu.:138.0   3rd Qu.:4.927   3rd Qu.:55.00   3rd Qu.: -63.00   3rd Qu.:1.000  
+ Max.   :5829   Max.   : 8.6782   Max.   :166.8   Max.   :5.117   Max.   :56.42   Max.   : -57.66   Max.   :1.000  
+                                                                                                                   
+   after_tax                      province_factor          geometry   
+ Min.   :0.000   Alberta                  :189    MULTIPOLYGON :1890  
+ 1st Qu.:0.000   British Columbia         :189    epsg:3347    :   0  
+ Median :0.000   Manitoba                 :189    +proj=lcc ...:   0  
+ Mean   :0.381   New Brunswick            :189                        
+ 3rd Qu.:1.000   Newfoundland and Labrador:189                        
+ Max.   :1.000   Nova Scotia              :189                        
+                 (Other)                  :756                        
+
+> #spplot(province_panel_shp, "housing_land_index")
+> 
+> 
+> ############################
+> ####### Map Plots ##########
+> ############################ .... [TRUNCATED] 
+   province              time            housing_land_index housing_index_log housing_index_growth immigrant_ratio_employmnt
+ Length:1890        Min.   :2008-04-01   Min.   : 74.6      Min.   :4.312     Min.   :-0.027909    Min.   : 1.157           
+ Class :character   1st Qu.:2012-03-01   1st Qu.: 96.1      1st Qu.:4.565     1st Qu.: 0.000000    1st Qu.: 5.405           
+ Mode  :character   Median :2016-02-01   Median : 99.5      Median :4.600     Median : 0.000000    Median :13.355           
+                    Mean   :2016-01-31   Mean   :101.6      Mean   :4.614     Mean   : 0.001708    Mean   :14.850           
+                    3rd Qu.:2020-01-01   3rd Qu.:104.1      3rd Qu.:4.645     3rd Qu.: 0.002285    3rd Qu.:23.685           
+                    Max.   :2023-12-01   Max.   :143.6      Max.   :4.967     Max.   : 0.054111    Max.   :33.771           
+                                                                                                                            
+ imm_ratio_growth   population_density pop_density_growth  unemployment    unemployment_growth      wage     
+ Min.   :-18.4380   Min.   : 1.192     Min.   :-0.08400   Min.   : 3.000   Min.   :-61.9039    Min.   :2439  
+ 1st Qu.: -0.9425   1st Qu.: 1.833     1st Qu.: 0.04819   1st Qu.: 5.600   1st Qu.: -7.4108    1st Qu.:3369  
+ Median :  0.2469   Median : 5.207     Median : 0.09208   Median : 7.300   Median :  0.0000    Median :3869  
+ Mean   :  0.3519   Mean   : 7.809     Mean   : 0.10085   Mean   : 7.907   Mean   : -0.1007    Mean   :3953  
+ 3rd Qu.:  1.5124   3rd Qu.:12.707     3rd Qu.: 0.13932   3rd Qu.: 9.400   3rd Qu.:  7.6961    3rd Qu.:4459  
+ Max.   : 23.1556   Max.   :25.822     Max.   : 0.48730   Max.   :18.800   Max.   : 73.1299    Max.   :5829  
+                                                                                                             
+  wage_growth           CPI           CPI_log           lat             lon              COVID         after_tax    
+ Min.   :-9.3672   Min.   :111.1   Min.   :4.710   Min.   :45.00   Min.   :-127.65   Min.   :0.000   Min.   :0.000  
+ 1st Qu.:-0.5594   1st Qu.:121.6   1st Qu.:4.801   1st Qu.:46.50   1st Qu.:-106.00   1st Qu.:0.000   1st Qu.:0.000  
+ Median : 0.3431   Median :129.3   Median :4.862   Median :53.07   Median : -77.50   Median :0.000   Median :0.000  
+ Mean   : 0.2122   Mean   :131.2   Mean   :4.873   Mean   :51.40   Mean   : -85.22   Mean   :0.254   Mean   :0.381  
+ 3rd Qu.: 1.1112   3rd Qu.:138.0   3rd Qu.:4.927   3rd Qu.:55.00   3rd Qu.: -63.00   3rd Qu.:1.000   3rd Qu.:1.000  
+ Max.   : 8.6782   Max.   :166.8   Max.   :5.117   Max.   :56.42   Max.   : -57.66   Max.   :1.000   Max.   :1.000  
+                                                                                                                    
+                  province_factor
+ Alberta                  :189   
+ British Columbia         :189   
+ Manitoba                 :189   
+ New Brunswick            :189   
+ Newfoundland and Labrador:189   
+ Nova Scotia              :189   
+ (Other)                  :756   
+
+> #Visualization
+> library(ggExtra)
+
+> Q2_scatter = ggplot(data = province, aes(x=immigrant_ratio_employmnt,y=housing_land_index, color=province)) + 
++   geom_point() +
++   theme(legend.p .... [TRUNCATED] 
+
+> ggMarginal(Q2_scatter, type="histogram")
+
+> # From the scatter plot, we can see that the housing index is increasing as immigration increases.
+> 
+> library(foreign)
+
+> coplot(housing_land_index~time|province,type="l",data=province)
+
+> library(foreign)
+
+> coplot(immigrant_ratio_employmnt~time|province,type="l",data=province)
+
+> #the bar is just ordered in alphabetic order
+> # This shows the similar conclusion as the scatter plot.
+> 
+> 
+> 
+> ################################# .... [TRUNCATED] 
+
+	Augmented Dickey-Fuller Test
+
+data:  province$housing_land_index
+Dickey-Fuller = -6.4976, Lag order = 12, p-value = 0.01
+alternative hypothesis: stationary
+
+
+> ggplot(province, aes(x = time, y = housing_land_index, group = province, color = province)) +
++   geom_line() +
++   labs(x = "Year", y = "Housing La ..." ... [TRUNCATED] 
+
+> #adf.test(province$housing_index_log)
+> #ggplot(province, aes(x = time, y = housing_index_log, group = province, color = province)) +
+> #  geom_line .... [TRUNCATED] 
+
+> head(province)
+# A tibble: 6 × 20
+  province time       housing_land_index housing_index_log housing_index_growth immigrant_ratio_employmnt imm_ratio_growth
+  <chr>    <date>                  <dbl>             <dbl>                <dbl>                     <dbl>            <dbl>
+1 Alberta  2008-04-01               103.              4.63             -0.00680                      16.7            0.546
+2 Alberta  2008-05-01               101.              4.62             -0.0137                       17.0            1.45 
+3 Alberta  2008-06-01               101.              4.61             -0.00396                      17.2            1.22 
+4 Alberta  2008-07-01               101.              4.61             -0.00199                      17.1           -0.396
+5 Alberta  2008-08-01               100.              4.61             -0.00498                      16.9           -0.947
+6 Alberta  2008-09-01               100.              4.61              0.00299                      16.7           -1.32 
+# ℹ 13 more variables: population_density <dbl>, pop_density_growth <dbl>, unemployment <dbl>, unemployment_growth <dbl>,
+#   wage <dbl>, wage_growth <dbl>, CPI <dbl>, CPI_log <dbl>, lat <dbl>, lon <dbl>, COVID <dbl>, after_tax <dbl>,
+#   province_factor <fct>
+
+> purtest(housing_index_log ~ trend, data = province, lags="AIC", pmax =2, index = c("province", "time"), test="levinlin")
+
+	Levin-Lin-Chu Unit-Root Test (ex. var.: Individual Intercepts and Trend)
+
+data:  housing_index_log ~ trend
+z = -1.5205, p-value = 0.0642
+alternative hypothesis: stationarity
+
+
+> #purtest(housing_land_index ~ trend, data = province, lags="AIC", pmax =2, index = c("province", "time"), test="levinlin")
+> #purtest(housing_index_ .... [TRUNCATED] 
+# A tibble: 6 × 20
+  province time       housing_land_index housing_index_log housing_index_growth immigrant_ratio_employmnt imm_ratio_growth
+  <chr>    <date>                  <dbl>             <dbl>                <dbl>                     <dbl>            <dbl>
+1 Alberta  2008-04-01               103.              4.63             -0.00680                      16.7            0.546
+2 Alberta  2008-05-01               101.              4.62             -0.0137                       17.0            1.45 
+3 Alberta  2008-06-01               101.              4.61             -0.00396                      17.2            1.22 
+4 Alberta  2008-07-01               101.              4.61             -0.00199                      17.1           -0.396
+5 Alberta  2008-08-01               100.              4.61             -0.00498                      16.9           -0.947
+6 Alberta  2008-09-01               100.              4.61              0.00299                      16.7           -1.32 
+# ℹ 13 more variables: population_density <dbl>, pop_density_growth <dbl>, unemployment <dbl>, unemployment_growth <dbl>,
+#   wage <dbl>, wage_growth <dbl>, CPI <dbl>, CPI_log <dbl>, lat <dbl>, lon <dbl>, COVID <dbl>, after_tax <dbl>,
+#   province_factor <fct>
+
+> ########### IGNORE #########
+> #Ignore the following
+> #province$resid = residuals(panel_pooled)
+> #table(province$province)
+> #resid_alberta = prov .... [TRUNCATED] 
+
+> coords_2023_Jan_Feb_Mar = st_centroid(st_geometry(province_2023_Jan_Feb_Mar))
+
+> col.knn_2023_Jan_Feb_Mar = knearneigh(coords_2023_Jan_Feb_Mar,k=2)
+
+> neighbor_2023_Jan_Feb_Mar = knn2nb(col.knn_2023_Jan_Feb_Mar)
+
+> weights_2023_Jan_Feb_Mar = nb2listw(neighbor_2023_Jan_Feb_Mar, style="B")
+
+> weights_2023_Jan_Feb_Mar
+Characteristics of weights list object:
+Neighbour list object:
+Number of regions: 30 
+Number of nonzero links: 60 
+Percentage nonzero weights: 6.666667 
+Average number of links: 2 
+10 disjoint connected subgraphs
+Non-symmetric neighbours list
+
+Weights style: B 
+Weights constants summary:
+   n  nn S0  S1  S2
+B 30 900 60 120 480
+
+> panel_ols_2023_Jan_Feb_Mar = lm(housing_land_index ~ immigrant_ratio_employmnt, data=province_2023_Jan_Feb_Mar)
+
+> lm.morantest(panel_ols_2023_Jan_Feb_Mar,weights_2023_Jan_Feb_Mar)
+
+	Global Moran I for regression residuals
+
+data:  
+model: lm(formula = housing_land_index ~ immigrant_ratio_employmnt, data = province_2023_Jan_Feb_Mar)
+weights: weights_2023_Jan_Feb_Mar
+
+Moran I statistic standard deviate = 6.1193, p-value = 4.701e-10
+alternative hypothesis: greater
+sample estimates:
+Observed Moran I      Expectation         Variance 
+      0.99921820      -0.07141213       0.03061131 
+
+
+> # This already pass the Moran I test, it is safe to conclude that the prices are auto-correlated spatially
+> 
+> #Try 2023 yearly data
+> province_pan .... [TRUNCATED] 
+
+> province_panel_2023_data = province %>% filter (time > as.Date("2022-12-01"))
+
+> # (1) Get coordinates 
+> coords_2023= st_centroid(st_geometry(province_panel_2023))
+
+> col.knn_2023 = knearneigh(coords_2023,k=2)
+
+> neighbor_2023 = knn2nb(col.knn_2023)
+
+> # (2) Get weights
+> weights_2023 = nb2listw(neighbor_2023, style="B")
+
+> weights_2023
+Characteristics of weights list object:
+Neighbour list object:
+Number of regions: 120 
+Number of nonzero links: 240 
+Percentage nonzero weights: 1.666667 
+Average number of links: 2 
+10 disjoint connected subgraphs
+Non-symmetric neighbours list
+
+Weights style: B 
+Weights constants summary:
+    n    nn  S0  S1   S2
+B 120 14400 240 300 3900
+
+> length(weights_2023)
+[1] 3
+
+> # (3) Conduct Moran's I test
+> panel_ols_2023 = lm(housing_land_index ~ immigrant_ratio_employmnt, data=province_panel_2023_data)
+
+> lm.morantest(panel_ols_2023,weights_2023)
+
+	Global Moran I for regression residuals
+
+data:  
+model: lm(formula = housing_land_index ~ immigrant_ratio_employmnt, data = province_panel_2023_data)
+weights: weights_2023
+
+Moran I statistic standard deviate = 14.474, p-value < 2.2e-16
+alternative hypothesis: greater
+sample estimates:
+Observed Moran I      Expectation         Variance 
+     0.946092120     -0.016801696      0.004425427 
+
+
+> #p-value < 2.2e-16, with a slight larger dataset, we get to reject the null and accept the alternative: there is spatial autocorrelation in the data .... [TRUNCATED] 
+
+> summary(panel_pooled_test)
+Pooling Model
+
+Call:
+plm(formula = housing_land_index ~ lag(housing_land_index) + 
+    immigrant_ratio_employmnt + population_density + unemployment + 
+    wage + CPI + COVID, data = province, model = "pooling", index = c("province", 
+    "time"))
+
+Balanced Panel: n = 10, T = 188, N = 1880
+
+Residuals:
+     Min.   1st Qu.    Median   3rd Qu.      Max. 
+-3.007428 -0.231027 -0.062006  0.111181  6.097930 
+
+Coefficients:
+                             Estimate  Std. Error  t-value  Pr(>|t|)    
+(Intercept)                1.8702e+00  2.5023e-01   7.4740 1.188e-13 ***
+lag(housing_land_index)    1.0004e+00  1.8686e-03 535.3697 < 2.2e-16 ***
+immigrant_ratio_employmnt  1.4946e-03  1.8966e-03   0.7880    0.4308    
+population_density         1.8332e-03  2.3743e-03   0.7721    0.4401    
+unemployment               2.2340e-03  5.5927e-03   0.3995    0.6896    
+wage                       3.6443e-05  3.4228e-05   1.0647    0.2872    
+CPI                       -1.5966e-02  2.4963e-03  -6.3959 2.011e-10 ***
+COVID                      6.3892e-01  5.0376e-02  12.6829 < 2.2e-16 ***
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Total Sum of Squares:    255690
+Residual Sum of Squares: 575.05
+R-Squared:      0.99775
+Adj. R-Squared: 0.99774
+F-statistic: 118645 on 7 and 1872 DF, p-value: < 2.22e-16
+
+> # There is a possibility that there is still unit root in houosing_land_index, so I decide not to use time lag for now
+> panel_pooled = plm(housing_ .... [TRUNCATED] 
+
+> summary(panel_pooled)
+Pooling Model
+
+Call:
+plm(formula = housing_land_index ~ immigrant_ratio_employmnt + 
+    population_density + unemployment + wage + CPI + COVID, data = province, 
+    model = "pooling", index = c("province", "time"))
+
+Balanced Panel: n = 10, T = 189, N = 1890
+
+Residuals:
+     Min.   1st Qu.    Median   3rd Qu.      Max. 
+-19.76470  -2.97717   0.39095   3.21921  25.85351 
+
+Coefficients:
+                            Estimate Std. Error t-value  Pr(>|t|)    
+(Intercept)               38.8052039  2.9685158 13.0723 < 2.2e-16 ***
+immigrant_ratio_employmnt  0.0516472  0.0234794  2.1997  0.027950 *  
+population_density         0.0691127  0.0294121  2.3498  0.018886 *  
+unemployment              -0.5157503  0.0680739 -7.5763 5.539e-14 ***
+wage                      -0.0015271  0.0004227 -3.6126  0.000311 ***
+CPI                        0.5294569  0.0282053 18.7715 < 2.2e-16 ***
+COVID                      8.1474500  0.6003375 13.5715 < 2.2e-16 ***
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Total Sum of Squares:    258180
+Residual Sum of Squares: 89482
+R-Squared:      0.65341
+Adj. R-Squared: 0.65231
+F-statistic: 591.664 on 6 and 1883 DF, p-value: < 2.22e-16
+
+> vif(panel_pooled)
+immigrant_ratio_employmnt        population_density              unemployment                      wage 
+                 2.131837                  1.467745                  1.607572                  3.693607 
+                      CPI                     COVID 
+                 5.085544                  2.715830 
+
+> LM_test = plmtest(panel_pooled,type=c("bp"))
+
+> print(LM_test)
+
+	Lagrange Multiplier Test - (Breusch-Pagan)
+
+data:  housing_land_index ~ immigrant_ratio_employmnt + population_density +  ...
+chisq = 9109.9, df = 1, p-value < 2.2e-16
+alternative hypothesis: significant effects
+
+
+> #The LM test helps you decide between a random effects regression and a simple OLS regression. The null hypothesis in the LM test is that variances  .... [TRUNCATED] 
+
+> summary(panel_fixed)
+Oneway (individual) effect Within Model
+
+Call:
+plm(formula = housing_land_index ~ immigrant_ratio_employmnt + 
+    population_density + unemployment + wage + CPI + COVID, data = province, 
+    model = "within", index = c("province", "time"))
+
+Balanced Panel: n = 10, T = 189, N = 1890
+
+Residuals:
+     Min.   1st Qu.    Median   3rd Qu.      Max. 
+-13.80538  -3.11444  -0.34589   2.92465  26.57805 
+
+Coefficients:
+                             Estimate  Std. Error  t-value  Pr(>|t|)    
+immigrant_ratio_employmnt  0.54545503  0.10605302   5.1432 2.983e-07 ***
+population_density        -0.79291875  0.28143586  -2.8174  0.004892 ** 
+unemployment              -0.79336182  0.07589880 -10.4529 < 2.2e-16 ***
+wage                       0.01070853  0.00059187  18.0928 < 2.2e-16 ***
+CPI                        0.15979522  0.03457045   4.6223 4.054e-06 ***
+COVID                      4.46393953  0.49183251   9.0761 < 2.2e-16 ***
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Total Sum of Squares:    245140
+Residual Sum of Squares: 53707
+R-Squared:      0.78091
+Adj. R-Squared: 0.77916
+F-statistic: 1113.28 on 6 and 1874 DF, p-value: < 2.22e-16
+
+> panel_random = plm(housing_land_index ~ immigrant_ratio_employmnt + population_density + unemployment + wage + CPI + COVID,index=c("province","time" .... [TRUNCATED] 
+
+> summary(panel_random)
+Oneway (individual) effect Random Effect Model 
+   (Swamy-Arora's transformation)
+
+Call:
+plm(formula = housing_land_index ~ immigrant_ratio_employmnt + 
+    population_density + unemployment + wage + CPI + COVID, data = province, 
+    model = "random", index = c("province", "time"))
+
+Balanced Panel: n = 10, T = 189, N = 1890
+
+Effects:
+                 var std.dev share
+idiosyncratic 28.659   5.353 0.811
+individual     6.676   2.584 0.189
+theta: 0.851
+
+Residuals:
+     Min.   1st Qu.    Median   3rd Qu.      Max. 
+-14.57729  -3.32782  -0.14044   2.87888  26.60972 
+
+Coefficients:
+                             Estimate  Std. Error z-value Pr(>|z|)    
+(Intercept)               30.77334573  2.82255541 10.9027  < 2e-16 ***
+immigrant_ratio_employmnt  0.07573502  0.06845524  1.1063  0.26858    
+population_density         0.27963034  0.12101221  2.3108  0.02085 *  
+unemployment              -0.63689662  0.07315671 -8.7059  < 2e-16 ***
+wage                       0.00916696  0.00058442 15.6855  < 2e-16 ***
+CPI                        0.26768930  0.02984235  8.9701  < 2e-16 ***
+COVID                      4.47629459  0.50196230  8.9176  < 2e-16 ***
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Total Sum of Squares:    245430
+Residual Sum of Squares: 56911
+R-Squared:      0.76811
+Adj. R-Squared: 0.76737
+Chisq: 6237.36 on 6 DF, p-value: < 2.22e-16
+
+> hausman_test = phtest(panel_fixed,panel_random)
+
+> print(hausman_test)
+
+	Hausman Test
+
+data:  housing_land_index ~ immigrant_ratio_employmnt + population_density +  ...
+chisq = 335.25, df = 6, p-value < 2.2e-16
+alternative hypothesis: one model is inconsistent
+
+
+> #In the context of the Hausman test, the null hypothesis typically states that the coefficients estimated under the fixed effects model are consiste .... [TRUNCATED] 
+immigrant_ratio_employmnt        population_density              unemployment                      wage 
+                 2.342253                  1.190250                  1.188002                  5.554781 
+                      CPI                     COVID 
+                 8.423418                  2.985333 
+
+> # I Want to remove CPI first because it is too high in VIF
+> 
+> panel_random2 = plm(housing_land_index ~ immigrant_ratio_employmnt + population_dens .... [TRUNCATED] 
+
+> summary(panel_random2)
+Oneway (individual) effect Random Effect Model 
+   (Swamy-Arora's transformation)
+
+Call:
+plm(formula = housing_land_index ~ immigrant_ratio_employmnt + 
+    population_density + unemployment + wage + COVID, data = province, 
+    model = "random", index = c("province", "time"))
+
+Balanced Panel: n = 10, T = 189, N = 1890
+
+Effects:
+                 var std.dev share
+idiosyncratic 28.970   5.382  0.78
+individual     8.181   2.860  0.22
+theta: 0.8644
+
+Residuals:
+     Min.   1st Qu.    Median   3rd Qu.      Max. 
+-15.44630  -3.29944   0.11526   2.87707  28.90536 
+
+Coefficients:
+                             Estimate  Std. Error  z-value  Pr(>|z|)    
+(Intercept)               47.69197406  2.14996688  22.1827 < 2.2e-16 ***
+immigrant_ratio_employmnt  0.30667476  0.06924293   4.4290 9.468e-06 ***
+population_density         0.53853466  0.12798269   4.2079 2.578e-05 ***
+unemployment              -0.83159924  0.07124239 -11.6728 < 2.2e-16 ***
+wage                       0.01266884  0.00044509  28.4632 < 2.2e-16 ***
+COVID                      6.27780157  0.46065882  13.6279 < 2.2e-16 ***
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Total Sum of Squares:    245380
+Residual Sum of Squares: 58733
+R-Squared:      0.76064
+Adj. R-Squared: 0.76001
+Chisq: 5987.01 on 5 DF, p-value: < 2.22e-16
+
+> vif(panel_random2)
+immigrant_ratio_employmnt        population_density              unemployment                      wage 
+                 2.222072                  1.130340                  1.086053                  3.111475 
+                    COVID 
+                 2.437545 
+
+> # Now everything looks nice and safe
+> 
+> 
+> #################################
+> ######### REGRESSION ############
+> ############################### .... [TRUNCATED] 
+Oneway (individual) effect Random Effect Model 
+   (Swamy-Arora's transformation)
+
+Call:
+plm(formula = housing_land_index ~ immigrant_ratio_employmnt + 
+    population_density + unemployment + wage + COVID, data = province, 
+    model = "random", index = c("province", "time"))
+
+Balanced Panel: n = 10, T = 189, N = 1890
+
+Effects:
+                 var std.dev share
+idiosyncratic 28.970   5.382  0.78
+individual     8.181   2.860  0.22
+theta: 0.8644
+
+Residuals:
+     Min.   1st Qu.    Median   3rd Qu.      Max. 
+-15.44630  -3.29944   0.11526   2.87707  28.90536 
+
+Coefficients:
+                             Estimate  Std. Error  z-value  Pr(>|z|)    
+(Intercept)               47.69197406  2.14996688  22.1827 < 2.2e-16 ***
+immigrant_ratio_employmnt  0.30667476  0.06924293   4.4290 9.468e-06 ***
+population_density         0.53853466  0.12798269   4.2079 2.578e-05 ***
+unemployment              -0.83159924  0.07124239 -11.6728 < 2.2e-16 ***
+wage                       0.01266884  0.00044509  28.4632 < 2.2e-16 ***
+COVID                      6.27780157  0.46065882  13.6279 < 2.2e-16 ***
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Total Sum of Squares:    245380
+Residual Sum of Squares: 58733
+R-Squared:      0.76064
+Adj. R-Squared: 0.76001
+Chisq: 5987.01 on 5 DF, p-value: < 2.22e-16
+
+> ################################
+> ######  Spatial Regression #####
+> ################################
+> 
+> ########### Ignore #############
+> # ### .... [TRUNCATED] 
+
+> spatial_weight = matrix(
++   c(0,1,0,0,0,0,0,0,0,1,
++     1,0,0,0,0,0,0,0,0,0,
++     0,0,0,0,0,0,1,0,0,1,
++     0,0,0,0,0,1,0,0,1,0,
++     0,0,0,0,0 .... [TRUNCATED] 
+
+> rownames(spatial_weight) = province_list
+
+> colnames(spatial_weight) = province_list
+
+> str(spatial_weight)
+ num [1:10, 1:10] 0 1 0 0 0 0 0 0 0 1 ...
+ - attr(*, "dimnames")=List of 2
+  ..$ : chr [1:10] "Alberta" "British Columbia" "Manitoba" "New Brunswick" ...
+  ..$ : chr [1:10] "Alberta" "British Columbia" "Manitoba" "New Brunswick" ...
+
+> W = rownor(spatial_weight)
+
+> formula1= housing_land_index ~ immigrant_ratio_employmnt + population_density + unemployment + wage + COVID
+
+> formula2= housing_land_index ~ immigrant_ratio_employmnt + population_density + unemployment + wage
+
+> ######### IGNORE ##############
+> # ## Example 1 ####
+> # data("Cigar",package = "plm")
+> # data("usa46",package="SDPDmod")
+> # summary(Cigar)
+> # d .... [TRUNCATED] 
+
+> # Still unable tp include COVID data
+> summary(spatial_random_SDEM_2023) 
+ML panel with spatial lag, random effects, spatial error correlation 
+
+Call:
+spreml(formula = formula, data = data, index = index, w = listw2mat(listw), 
+    w2 = listw2mat(listw2), lag = lag, errors = errors, cl = cl)
+
+Residuals:
+   Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+  -81.2   -61.5   -51.5   -55.1   -42.9   -37.3 
+
+Error variance parameters:
+      Estimate Std. Error t-value Pr(>|t|)  
+phi 1230.75215  628.31379  1.9588  0.05013 .
+rho    0.35921    0.13993  2.5670  0.01026 *
+
+Spatial autoregressive coefficient:
+       Estimate Std. Error t-value Pr(>|t|)   
+lambda -0.44576    0.13751 -3.2415 0.001189 **
+
+Coefficients:
+                             Estimate  Std. Error t-value  Pr(>|t|)    
+(Intercept)                1.9358e+02  6.3422e+00 30.5221 < 2.2e-16 ***
+immigrant_ratio_employmnt -3.1362e-01  6.5362e-02 -4.7982 1.601e-06 ***
+population_density        -6.4813e-01  3.1550e-01 -2.0543   0.03995 *  
+unemployment              -5.4704e-02  4.8148e-02 -1.1362   0.25588    
+wage                      -7.8903e-04  5.4404e-04 -1.4503   0.14697    
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+
+> ## calculate impact measures 
+> impact_random_SDEM_2023 = impacts(spatial_random_SDEM_2023, listw = spdep::mat2listw(W, style = "W"), time = 17) 
+
+> summary(impact_random_SDEM_2023, zstats=TRUE, short=TRUE)
+Impact measures (lag, trace):
+                                 Direct    Indirect         Total
+immigrant_ratio_employmnt -0.3488583029 0.131935215 -0.2169230881
+population_density        -0.7209635304 0.272662217 -0.4483013137
+unemployment              -0.0608512118 0.023013406 -0.0378378060
+wage                      -0.0008776957 0.000331937 -0.0005457587
+========================================================
+Simulation results ( variance matrix):
+========================================================
+Simulated standard errors
+                                Direct     Indirect        Total
+immigrant_ratio_employmnt 0.0739966040 0.0558482563 0.0500634448
+population_density        0.3447135850 0.1639278533 0.2224482058
+unemployment              0.0472538229 0.0202625421 0.0300307876
+wage                      0.0006174879 0.0002886322 0.0003698471
+
+Simulated z-values:
+                             Direct Indirect     Total
+immigrant_ratio_employmnt -4.884617 2.528942 -4.398580
+population_density        -2.148106 1.754624 -2.035753
+unemployment              -1.303484 1.188567 -1.249092
+wage                      -1.505783 1.270172 -1.522764
+
+Simulated p-values:
+                          Direct     Indirect Total     
+immigrant_ratio_employmnt 1.0363e-06 0.011441 1.0896e-05
+population_density        0.031705   0.079324 0.041775  
+unemployment              0.192409   0.234610 0.211631  
+wage                      0.132123   0.204023 0.127818  
+
+> # The p-value of impact from immigrant_ratio_employmnt are all pretty small and significant
+> 
+> 
+> # Whole data
+> ## random effects panel with spat .... [TRUNCATED] 
+
+> summary(spatial_random_SDEM) 
+ML panel with spatial lag, random effects, spatial error correlation 
+
+Call:
+spreml(formula = formula, data = data, index = index, w = listw2mat(listw), 
+    w2 = listw2mat(listw2), lag = lag, errors = errors, cl = cl)
+
+Residuals:
+   Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+ -55.94  -33.40   -6.80  -13.32    5.61   22.05 
+
+Error variance parameters:
+     Estimate Std. Error t-value Pr(>|t|)    
+phi 18.592102   8.544677  2.1759  0.02957 *  
+rho  0.468065   0.029416 15.9121  < 2e-16 ***
+
+Spatial autoregressive coefficient:
+        Estimate Std. Error t-value  Pr(>|t|)    
+lambda -0.130695   0.029058 -4.4977 6.868e-06 ***
+
+Coefficients:
+                            Estimate Std. Error t-value  Pr(>|t|)    
+(Intercept)               37.1855430  7.0596053  5.2674 1.384e-07 ***
+immigrant_ratio_employmnt  1.6047900  0.0867220 18.5050 < 2.2e-16 ***
+population_density         0.1272718  0.2377542  0.5353    0.5924    
+unemployment              -0.6196428  0.0823429 -7.5252 5.266e-14 ***
+wage                       0.0146105  0.0004317 33.8445 < 2.2e-16 ***
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+
+> ## calculate impact measures 
+> impact_random_SDEM = impacts(spatial_random_SDEM, listw = spdep::mat2listw(W, style = "W"), time = 17) 
+
+> summary(impact_random_SDEM , zstats=TRUE, short=TRUE)
+Impact measures (lag, trace):
+                               Direct    Indirect       Total
+immigrant_ratio_employmnt  1.60575091 -0.18645628  1.41929464
+population_density         0.12734797 -0.01478737  0.11256060
+unemployment              -0.62001380  0.07199464 -0.54801916
+wage                       0.01461929 -0.00169756  0.01292173
+========================================================
+Simulation results ( variance matrix):
+========================================================
+Simulated standard errors
+                                Direct     Indirect        Total
+immigrant_ratio_employmnt 0.0856657813 0.0363201955 0.0838216913
+population_density        0.2245852167 0.0258778432 0.1993577854
+unemployment              0.0824601804 0.0163716894 0.0747257859
+wage                      0.0004165646 0.0003215084 0.0004831245
+
+Simulated z-values:
+                              Direct  Indirect      Total
+immigrant_ratio_employmnt 18.8150629 -5.039678 17.0452894
+population_density         0.4631552 -0.454049  0.4628261
+unemployment              -7.5598367  4.321422 -7.3955263
+wage                      35.1232902 -5.168778 26.8446608
+
+Simulated p-values:
+                          Direct     Indirect   Total     
+immigrant_ratio_employmnt < 2.22e-16 4.6632e-07 < 2.22e-16
+population_density        0.64325    0.64979    0.64349   
+unemployment              4.0412e-14 1.5503e-05 1.4078e-13
+wage                      < 2.22e-16 2.3563e-07 < 2.22e-16
+
+> # The p-value of impact from immigrant_ratio_employmnt are all pretty small and significant
+> # random effects panel without spatial lag (just SEM)
+ .... [TRUNCATED] 
+
+> summary(spatial_random_SEM) 
+ML panel with , random effects, spatial error correlation 
+
+Call:
+spreml(formula = formula, data = data, index = index, w = listw2mat(listw), 
+    w2 = listw2mat(listw2), lag = lag, errors = errors, cl = cl)
+
+Residuals:
+   Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+ -39.27  -17.78    4.49    0.00   18.07   34.52 
+
+Error variance parameters:
+     Estimate Std. Error t-value Pr(>|t|)    
+phi 14.663882   6.698843   2.189   0.0286 *  
+rho  0.354291   0.021315  16.621   <2e-16 ***
+
+Coefficients:
+                             Estimate  Std. Error t-value  Pr(>|t|)    
+(Intercept)               32.96056113  6.49953973  5.0712 3.953e-07 ***
+immigrant_ratio_employmnt  1.40143278  0.08701588 16.1055 < 2.2e-16 ***
+population_density        -0.09178068  0.24564222 -0.3736    0.7087    
+unemployment              -0.64143298  0.08062127 -7.9561 1.775e-15 ***
+wage                       0.01355082  0.00043656 31.0400 < 2.2e-16 ***
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+
+> # Impacts Estimates are not available for Error Model, as there will not be spillover effects given that there is only spatial error
+> 
+> 
+> ####### .... [TRUNCATED] 
+
+> ontario_before2017 = ontario %>% filter(time < as.Date("2018-01-01"))
+
+> ontario_after2017 = ontario %>% filter(time > as.Date("2017-12-01"))
+
+> # Before_OLS
+> ols_ontario_before = lm(formula1, data=ontario_before2017)
+
+> summary(ols_ontario_before)
+
+Call:
+lm(formula = formula1, data = ontario_before2017)
+
+Residuals:
+    Min      1Q  Median      3Q     Max 
+-1.8091 -0.8902 -0.1217  0.5427  3.7138 
+
+Coefficients: (1 not defined because of singularities)
+                            Estimate Std. Error t value Pr(>|t|)    
+(Intercept)               -1.366e+02  8.552e+00 -15.974  < 2e-16 ***
+immigrant_ratio_employmnt  7.471e-01  1.986e-01   3.762  0.00027 ***
+population_density         1.757e+01  1.233e+00  14.251  < 2e-16 ***
+unemployment              -7.141e-01  1.385e-01  -5.155  1.1e-06 ***
+wage                      -2.180e-03  2.061e-03  -1.058  0.29255    
+COVID                             NA         NA      NA       NA    
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Residual standard error: 1.227 on 112 degrees of freedom
+Multiple R-squared:  0.9754,	Adjusted R-squared:  0.9745 
+F-statistic:  1110 on 4 and 112 DF,  p-value: < 2.2e-16
+
+
+> # Coef for immigration is sig
+> 
+> # After_OLS
+> ols_ontario_after = lm(formula1, data=ontario_after2017)
+
+> summary(ols_ontario_after)
+
+Call:
+lm(formula = formula1, data = ontario_after2017)
+
+Residuals:
+    Min      1Q  Median      3Q     Max 
+-8.2469 -1.6465 -0.3484  1.7696  5.2096 
+
+Coefficients:
+                           Estimate Std. Error t value Pr(>|t|)    
+(Intercept)               68.940777  36.846860   1.871 0.065778 .  
+immigrant_ratio_employmnt  0.610623   0.779092   0.784 0.435984    
+population_density        -6.646731   3.752497  -1.771 0.081130 .  
+unemployment              -1.229837   0.235612  -5.220 1.95e-06 ***
+wage                       0.024420   0.003867   6.315 2.62e-08 ***
+COVID                      6.204348   1.796910   3.453 0.000973 ***
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Residual standard error: 2.985 on 66 degrees of freedom
+Multiple R-squared:  0.9144,	Adjusted R-squared:  0.908 
+F-statistic: 141.1 on 5 and 66 DF,  p-value: < 2.2e-16
+
+
+> # Coef for immigration is no longer sig
+> 
+> # Now include a dummy for tax
+> formula3 = housing_land_index ~ immigrant_ratio_employmnt + population_ .... [TRUNCATED] 
+
+> formula4 = housing_land_index ~ immigrant_ratio_employmnt + population_density + unemployment + wage + COVID + after_tax + immigrant_ratio_employmnt .... [TRUNCATED] 
+
+> ols_ontario_dummy = lm(formula3, data=ontario)
+
+> ols_ontario_interaction = lm(formula4, data=ontario)
+
+> summary(ols_ontario_dummy)
+
+Call:
+lm(formula = formula3, data = ontario)
+
+Residuals:
+    Min      1Q  Median      3Q     Max 
+-8.1618 -1.4078 -0.0272  1.2431  5.3536 
+
+Coefficients:
+                            Estimate Std. Error t value Pr(>|t|)    
+(Intercept)               -66.471470  11.282368  -5.892 1.81e-08 ***
+immigrant_ratio_employmnt   0.503342   0.294882   1.707 0.089541 .  
+population_density          7.968139   1.670435   4.770 3.76e-06 ***
+unemployment               -0.962500   0.144357  -6.668 3.01e-10 ***
+wage                        0.012426   0.002273   5.466 1.50e-07 ***
+COVID                       4.352864   1.017265   4.279 3.03e-05 ***
+after_tax                  -3.011223   0.757836  -3.973 0.000102 ***
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Residual standard error: 2.366 on 182 degrees of freedom
+Multiple R-squared:  0.9772,	Adjusted R-squared:  0.9765 
+F-statistic:  1303 on 6 and 182 DF,  p-value: < 2.2e-16
+
+
+> summary(ols_ontario_interaction)
+
+Call:
+lm(formula = formula4, data = ontario)
+
+Residuals:
+    Min      1Q  Median      3Q     Max 
+-8.2874 -1.3655 -0.0554  1.1093  5.4376 
+
+Coefficients:
+                                      Estimate Std. Error t value Pr(>|t|)    
+(Intercept)                         -66.992777  11.270560  -5.944 1.40e-08 ***
+immigrant_ratio_employmnt             0.627631   0.310130   2.024   0.0445 *  
+population_density                    7.804931   1.672502   4.667 5.94e-06 ***
+unemployment                         -1.020674   0.151175  -6.752 1.92e-10 ***
+wage                                  0.012249   0.002274   5.387 2.21e-07 ***
+COVID                                 5.135898   1.187110   4.326 2.50e-05 ***
+after_tax                            20.830043  18.733033   1.112   0.2676    
+immigrant_ratio_employmnt:after_tax  -0.745369   0.585188  -1.274   0.2044    
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Residual standard error: 2.362 on 181 degrees of freedom
+Multiple R-squared:  0.9774,	Adjusted R-squared:  0.9766 
+F-statistic:  1121 on 7 and 181 DF,  p-value: < 2.2e-16
+
+
+> # As it's shown, the impact of immigration is positive, tax impact is negative. And indeed there is an interaction between immigration and tax. With .... [TRUNCATED] 
